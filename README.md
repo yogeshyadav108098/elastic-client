@@ -4,7 +4,7 @@ Elastic client that works on different protocol and strategies
 ## Install
 
 ```
-npm install --save elastic-client
+npm install --save elastic-client-advanced
 ```
 
 ## Usage
@@ -13,7 +13,7 @@ npm install --save elastic-client
 ```js
 
 const Q = require('q');
-const ElasticClient = require('elastic-client');
+const ElasticClient = require('elastic-client-advanced');
 const Elasticsearch = require('elasticsearch');
 let client = new Elasticsearch.Client({
     host: {
