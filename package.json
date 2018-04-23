@@ -1,6 +1,6 @@
 {
     "name": "elastic-client-advanced",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Elastic client that works on some protocol(count,default) and strategies",
     "main": "index.js",
     "scripts": {

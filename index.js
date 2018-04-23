@@ -304,7 +304,6 @@ class ElasticClient {
 function pingClient(self) {
     let deferred = Q.defer();
     // Try to ping client
-    logger.debug(self.esClient);
     self.esClient.ping({
         requestTimeout: 30000
     }, function(error) {
