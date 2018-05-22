@@ -25,8 +25,13 @@ let client = new Elasticsearch.Client({
 
 // 2nd Param is optional but its better if you provide
 let elasticClient = new ElasticClient(client, {
-    logger: 'customLogger'
+    logger: console.log
 });
+
+let index = 'keyvalueindex';
+let type = 'keyvaluetype';
+let columns = ['a', 'b', 'c'];
+const sleep = require('sleep');
 
 new Q(undefined)
     .then(function(result) {
@@ -34,16 +39,19 @@ new Q(undefined)
     })
     .then(function() {
         return elasticClient.setProtocol({
-            name: 'temp',
+            name: 'serviceName',
             protocol: 'COUNT',
             protocolField: 'customerId',
-            protocolMax: 2
+            protocolMax: 10
         });
     })
     .then(function() {
+        return elasticClient.setFieldsForIndexNType(index, type, columns);
+    })
+    .then(function() {
         return elasticClient.insert({
-            index: 'test',
-            type: 'test2',
+            index: index,
+            type: type,
             customerId: 1,
             body: {
                 c: 1,
@@ -52,9 +60,13 @@ new Q(undefined)
         });
     })
     .then(function() {
+        sleep.sleep(1);
+        return Q.resolve();
+    })
+    .then(function() {
         return elasticClient.insert({
-            index: 'test',
-            type: 'test2',
+            index: index,
+            type: type,
             customerId: 1,
             body: {
                 c: 1,
@@ -62,7 +74,10 @@ new Q(undefined)
             }
         });
     })
+    .then(function() {
+        return Q.resolve();
+    })
     .fail(function(error) {
-        console.log(error);
+        logger.error(error);
     });
 ```

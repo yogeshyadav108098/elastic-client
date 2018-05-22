@@ -1,6 +1,6 @@
 {
     "name": "elastic-client-advanced",
-    "version": "1.0.1",
+    "version": "1.1.0",
     "description": "Elastic client that works on some protocol(count,default) and strategies",
     "main": "index.js",
     "scripts": {
@@ -23,12 +23,15 @@
     },
     "homepage": "https://github.com/yogeshyadav108098/elastic-client#readme",
     "dependencies": {
-        "es-key-value": "^1.0.0",
+        "es-key-value": "^1.0.5",
         "eslint": "^4.19.1",
         "eslint-config-google": "^0.9.1",
         "lodash": "^4.17.5",
         "q": "^1.5.1",
         "uuid": "^3.2.1",
         "uuid-logger": "^1.0.3"
+    },
+    "devDependencies": {
+        "sleep": "^5.1.1"
     }
 }
