@@ -111,6 +111,7 @@ class ElasticClient {
         }
 
         self.isProtocolSet = true;
+        self.indexTypeFields = {};
         logger.warn('Protocol is set for given client');
         return Q.resolve();
     }
@@ -123,7 +124,7 @@ class ElasticClient {
 
         let deferred = Q.defer();
         try {
-            logger.debug(JSON.stringify(options));
+            logger.debug('Listing for options: ', JSON.stringify(options));
             self.esClient.search(options).then(function(response) {
                 let result = {};
                 if (response.hits.total > 0 && !_.isEmpty(response.hits.hits)) {
@@ -142,6 +143,23 @@ class ElasticClient {
             return deferred.reject(error);
         }
         return deferred.promise;
+    }
+
+    setFieldsForIndexNType(index, type, fields) {
+        let self = this;
+        if (!index || !type || !fields || !fields.length) {
+            return Q.reject('Index, Type, Fields not provided for setting fields');
+        }
+
+        if (!self.indexTypeFields[index]) {
+            self.indexTypeFields[index] = {};
+        }
+
+        if (!self.indexTypeFields[index][type]) {
+            self.indexTypeFields[index][type] = fields;
+        }
+
+        return Q.resolve();
     }
 
     insert(options) {
@@ -190,19 +208,24 @@ class ElasticClient {
                 return self.esKeyValueClient.set(sequenceName, sequenceId);
             })
             .then(function() {
-                return self.delete({
+                logger.debug('Converting to ES object compatible to client app');
+                return convertToESCreateObject({
+                    self,
                     index,
                     type,
-                    id: sequenceId
+                    body
                 });
             })
-            .then(function() {
-                return create({
+            .then(function(esObject) {
+                let body = JSON.stringify({doc: esObject, doc_as_upsert: true});
+                let id = sequenceId;
+                logger.debug('Updating ES (index, type, id, body)', index, type, id, body);
+                return self.update({
                     index,
+
                     type,
-                    sequenceId,
-                    body,
-                    esClient: self.esClient
+                    id,
+                    body
                 });
             })
             .then(function() {
@@ -318,29 +341,6 @@ function pingClient(self) {
     return deferred.promise;
 }
 
-function create(options) {
-    let deferred = Q.defer();
-
-    let createOptions = {
-        index: options.index,
-        type: options.type,
-        id: options.sequenceId,
-        body: options.body
-    };
-
-    logger.debug(JSON.stringify(createOptions));
-    options.esClient.create(createOptions, function(error, response) {
-        if (error) {
-            logger.error(error);
-            return deferred.reject(error);
-        }
-
-        logger.debug('Create success for ID:', response._id);
-        return deferred.resolve(response);
-    });
-    return deferred.promise;
-}
-
 function generateSequenceId(serviceInfo, sequenceId) {
     if (serviceInfo.protocol.toUpperCase() === 'COUNT') {
         return generateCountProtocolSequenceId(serviceInfo, sequenceId);
@@ -361,6 +361,30 @@ function generateCountProtocolSequenceId(serviceInfo, sequenceId) {
     return sequenceId;
 }
 
+function convertToESCreateObject(options) {
+    let self = options.self;
+    let index = options.index;
+    let type = options.type;
+    let body = options.body;
+
+    if (!index || !type || !body) {
+        return Q.reject('Index, Type, Body not provided for creating ES object');
+    }
+
+    if (!self.indexTypeFields[index] || !self.indexTypeFields[index][type]) {
+        return Q.reject('Index, Type not registered for creating ES object');
+    }
+
+    let fields = self.indexTypeFields[index][type];
+
+    let esObject = {};
+    fields.forEach(function(key) {
+        esObject[key] = body[key] || '';
+    });
+
+    return Q.resolve(esObject);
+}
+
 module.exports = ElasticClient;
 
 
@@ -376,6 +400,10 @@ module.exports = ElasticClient;
         });
 
         let elasticClient = new ElasticClient(client);
+        let index = 'keyvalueindex';
+        let type = 'keyvaluetype';
+        let columns = ['a', 'b', 'c'];
+        const sleep = require('sleep');
 
         new Q(undefined)
             .then(function(result) {
@@ -383,16 +411,19 @@ module.exports = ElasticClient;
             })
             .then(function() {
                 return elasticClient.setProtocol({
-                    name: 'temp',
+                    name: 'serviceName',
                     protocol: 'COUNT',
                     protocolField: 'customerId',
-                    protocolMax: 2
+                    protocolMax: 10
                 });
             })
             .then(function() {
+                return elasticClient.setFieldsForIndexNType(index, type, columns);
+            })
+            .then(function() {
                 return elasticClient.insert({
-                    index: 'test',
-                    type: 'test2',
+                    index: index,
+                    type: type,
                     customerId: 1,
                     body: {
                         c: 1,
@@ -401,9 +432,13 @@ module.exports = ElasticClient;
                 });
             })
             .then(function() {
+                sleep.sleep(1);
+                return Q.resolve();
+            })
+            .then(function() {
                 return elasticClient.insert({
-                    index: 'test',
-                    type: 'test2',
+                    index: index,
+                    type: type,
                     customerId: 1,
                     body: {
                         c: 1,
@@ -411,18 +446,6 @@ module.exports = ElasticClient;
                     }
                 });
             })
-            // .then(function() {
-            //     return elasticClient.insert({
-            //         index: 'test',
-            //         type: 'test2',
-            //         customerId: 1,
-            //         body: {
-            //             c: 1,
-            //             b: 3
-            //         }
-            //     });
-            // })
-
             .then(function() {
                 return Q.resolve();
             })
