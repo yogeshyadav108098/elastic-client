@@ -222,14 +222,13 @@ class ElasticClient {
                 logger.debug('Updating ES (index, type, id, body)', index, type, id, body);
                 return self.update({
                     index,
-
                     type,
                     id,
                     body
                 });
             })
             .then(function() {
-                return deferred.resolve();
+                return deferred.resolve(sequenceId);
             })
             .fail(function(error) {
                 logger.error(error);
