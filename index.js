@@ -218,7 +218,7 @@ class ElasticClient {
             })
             .then(function(esObject) {
                 let body = JSON.stringify({doc: esObject, doc_as_upsert: true});
-                let id = sequenceId;
+                let id = sequenceName + '_' + sequenceId;
                 logger.debug('Updating ES (index, type, id, body)', index, type, id, body);
                 return self.update({
                     index,
