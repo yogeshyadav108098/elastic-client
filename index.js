@@ -6,7 +6,7 @@ const _ = require('lodash');
 const EsKeyValue = require('es-key-value');
 
 // Internal
-const LibUtils = require('./lib/utils').getInstance();
+const LibUtils = require('./lib/utils')();
 const ResponseCodes = require('./helpers/responseCode');
 
 const AvailableProtocols = ['COUNT'];
@@ -204,7 +204,7 @@ class ElasticClient {
             .then(function(response) {
                 sequenceId = Number(response);
                 sequenceId = generateSequenceId(serviceInfo, sequenceId);
-                logger.debug('Setting sequence value as', sequenceId);
+                logger.info('Setting sequence value as', sequenceId, 'for sequence', sequenceName);
                 return self.esKeyValueClient.set(sequenceName, sequenceId);
             })
             .then(function() {
