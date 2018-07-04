@@ -196,6 +196,7 @@ class ElasticClient {
             '_' + serviceInfo.protocolField.toLowerCase() +
             '_' + protocolFieldValue.toString();
 
+
         // TODO : Locking sequence
         new Q(undefined)
             .then(function() {
@@ -206,6 +207,15 @@ class ElasticClient {
                 sequenceId = generateSequenceId(serviceInfo, sequenceId);
                 logger.info('Setting sequence value as', sequenceId, 'for sequence', sequenceName);
                 return self.esKeyValueClient.set(sequenceName, sequenceId);
+            })
+            .then(function(esObject) {
+                sequenceId = (sequenceName + '_' + sequenceId);
+                logger.debug('Deleting ES (index, type, id)', index, type, sequenceId);
+                return self.delete({
+                    index,
+                    type,
+                    id: sequenceId
+                });
             })
             .then(function() {
                 logger.debug('Converting to ES object compatible to client app');
@@ -218,13 +228,11 @@ class ElasticClient {
             })
             .then(function(esObject) {
                 let body = JSON.stringify({doc: esObject, doc_as_upsert: true});
-                let id = sequenceName + '_' + sequenceId;
-                sequenceId = id;
-                logger.debug('Updating ES (index, type, id, body)', index, type, id, body);
+                logger.debug('Updating ES (index, type, id, body)', index, type, sequenceId, body);
                 return self.update({
                     index,
                     type,
-                    id,
+                    id: sequenceId,
                     body
                 });
             })
@@ -379,7 +387,9 @@ function convertToESCreateObject(options) {
 
     let esObject = {};
     fields.forEach(function(key) {
-        esObject[key] = body[key] || '';
+        if (body[key]) {
+            esObject[key] = body[key];
+        }
     });
 
     return Q.resolve(esObject);
